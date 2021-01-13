@@ -29,8 +29,9 @@ int main()
 	uint32_t 	l_servoId	 	= 1;
 	int 		l_ret;
 	int 		l_quitRequested	= 0;
+	double		l_parameters[SSV_PARAMETERS_NB_MAX];
 
-	CLx16a l_pilotageServo("/dev/ttyUSB0", 115200);
+	CLx16a l_pilotageServo("/dev/ttyUSB1", 115200);
 	l_ret = l_pilotageServo.initDeviceSerialPort();
 	if(l_ret != -1)
 	{
@@ -49,6 +50,7 @@ int main()
 						cout << "	read_csv\n";
 						cout << "	read\n";
 						cout << "	write\n";
+						cout << "	setMotorRotSpeed\n";
 					}
 
 					else if(strcmp(l_inputMsg.c_str(), "quit") == 0)
@@ -66,7 +68,6 @@ int main()
 						int 			l_servoIdTab[CSV_FILE_MAX_SERVO_CMD];
 						int 			l_positionAngle[CSV_FILE_MAX_SERVO_CMD];
 						int 			l_timeoutUs[CSV_FILE_MAX_SERVO_CMD];
-						int 			l_testCounter = 0;
 						signed short 	l_position;
 
 						while(in.read_row(l_servoIdTab[l_servoCmdCounter], l_positionAngle[l_servoCmdCounter], l_timeoutUs[l_servoCmdCounter]))
@@ -78,11 +79,12 @@ int main()
 						for(l_indexServoCmd = 0 ; l_indexServoCmd < l_servoCmdCounter; l_indexServoCmd++)
 						{
 							cout << "RequestedPositionAngle = " << l_positionAngle[l_indexServoCmd] << "\n";
+							l_parameters[0] = (double) l_positionAngle[l_indexServoCmd];
 							if(l_timeoutUs[l_indexServoCmd] == 0)
 							{
-								l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MOVE_TIME_WRITE, l_positionAngle[l_indexServoCmd]);
+								l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
 								sleep(2);
-								l_pilotageServo.readDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_POS_READ, &l_position);
+								l_pilotageServo.readDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_POS_READ, &l_position);
 							}
 							else
 							{
@@ -93,9 +95,9 @@ int main()
 								{
 									do
 									{
-										l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MOVE_TIME_WRITE, l_positionAngle[l_indexServoCmd]);
+										l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
 										sleep(1);
-										l_pilotageServo.readDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_POS_READ, &l_position);
+										l_pilotageServo.readDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_POS_READ, &l_position);
 									} while((l_position < ((signed short) (l_positionAngle[l_indexServoCmd] - SSV_ANGLE_DEG_TOL))) || (l_position > ((signed short) (l_positionAngle[l_indexServoCmd] + SSV_ANGLE_DEG_TOL))));
 
 									l_diffTimeUs 	= clock() - l_beginTimeUs;
@@ -115,17 +117,17 @@ int main()
 
 							// Read position
 							signed short l_position;
-							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_POS_READ, &l_position);
+							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_MESSAGE_POS_READ, &l_position);
 							cout << "> Position : " << l_position << " ° \n";
 
 							// Read voltage
 							signed short l_voltage;
-							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_VIN_READ, &l_voltage);
+							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_MESSAGE_VIN_READ, &l_voltage);
 							cout << "> Voltage : " << l_voltage << " mV \n";
 
 							// Read temperature
 							signed short l_temperature;
-							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_TEMP_READ, &l_temperature);
+							l_pilotageServo.readDeviceSerialPort(l_indexServoId+1, SSV_SERVO_MESSAGE_TEMP_READ, &l_temperature);
 							cout << "> Temperature : " << l_temperature << " °C \n";
 						}
 					}
@@ -134,12 +136,39 @@ int main()
 					{
 						if((l_writeCounter%2) == 0)
 						{
-							l_pilotageServo.writeDeviceSerialPort(l_servoId, SSV_SERVO_MOVE_TIME_WRITE, 240);
+							l_parameters[0] = (double) 240;
 						}
 						else
 						{
-							l_pilotageServo.writeDeviceSerialPort(l_servoId, SSV_SERVO_MOVE_TIME_WRITE, 0);
+							l_parameters[0] = (double) 0;
 						}
+						l_pilotageServo.writeDeviceSerialPort(l_servoId, SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
+						l_writeCounter++;
+					}
+
+					else if(strcmp(l_inputMsg.c_str(), "setMotorRotSpeed") == 0)
+					{
+						if((l_writeCounter%5) == 0)
+						{
+							l_parameters[0] = (double) 0;
+						}
+						else if((l_writeCounter%5) == 1)
+						{
+							l_parameters[0] = (double) 500;
+						}
+						else if((l_writeCounter%5) == 2)
+						{
+							l_parameters[0] = (double) 1000;
+						}
+						else if((l_writeCounter%5) == 3)
+						{
+							l_parameters[0] = (double) -500;
+						}
+						else if((l_writeCounter%5) == 4)
+						{
+							l_parameters[0] = (double) -1000;
+						}
+						l_pilotageServo.writeDeviceSerialPort(l_servoId, SSV_SERVO_MESSAGE_OR_MOTOR_MODE_WRITE, l_parameters);
 						l_writeCounter++;
 					}
 
