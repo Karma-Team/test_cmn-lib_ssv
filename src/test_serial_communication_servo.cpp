@@ -66,20 +66,20 @@ int main()
 						int 			l_indexServoCmd;
 						int 			l_servoCmdCounter 							= 0;
 						int 			l_servoIdTab[CSV_FILE_MAX_SERVO_CMD];
-						int 			l_positionAngle[CSV_FILE_MAX_SERVO_CMD];
+						int 			l_positionValue[CSV_FILE_MAX_SERVO_CMD];
 						int 			l_timeoutUs[CSV_FILE_MAX_SERVO_CMD];
 						signed short 	l_position;
 
-						while(in.read_row(l_servoIdTab[l_servoCmdCounter], l_positionAngle[l_servoCmdCounter], l_timeoutUs[l_servoCmdCounter]))
+						while(in.read_row(l_servoIdTab[l_servoCmdCounter], l_positionValue[l_servoCmdCounter], l_timeoutUs[l_servoCmdCounter]))
 						{
-							cout << "cmdId = " << l_servoCmdCounter << " servoId = " << l_servoIdTab[l_servoCmdCounter] << " positionAngle = " << l_positionAngle[l_servoCmdCounter] << " timeoutUs = " << l_timeoutUs[l_servoCmdCounter] << "\n";
+							cout << "cmdId = " << l_servoCmdCounter << " servoId = " << l_servoIdTab[l_servoCmdCounter] << " positionValue = " << l_positionValue[l_servoCmdCounter] << " timeoutUs = " << l_timeoutUs[l_servoCmdCounter] << "\n";
 							l_servoCmdCounter++;
 						}
 
 						for(l_indexServoCmd = 0 ; l_indexServoCmd < l_servoCmdCounter; l_indexServoCmd++)
 						{
-							cout << "RequestedPositionAngle = " << l_positionAngle[l_indexServoCmd] << "\n";
-							l_parameters[0] = (double) l_positionAngle[l_indexServoCmd];
+							cout << "RequestedPositionValue = " << l_positionValue[l_indexServoCmd] << "\n";
+							l_parameters[0] = (double) l_positionValue[l_indexServoCmd];
 							if(l_timeoutUs[l_indexServoCmd] == 0)
 							{
 								l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
@@ -98,7 +98,7 @@ int main()
 										l_pilotageServo.writeDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
 										sleep(1);
 										l_pilotageServo.readDeviceSerialPort(l_servoIdTab[l_indexServoCmd], SSV_SERVO_MESSAGE_POS_READ, &l_position);
-									} while((l_position < ((signed short) (l_positionAngle[l_indexServoCmd] - SSV_ANGLE_DEG_TOL))) || (l_position > ((signed short) (l_positionAngle[l_indexServoCmd] + SSV_ANGLE_DEG_TOL))));
+									} while((l_position < ((signed short) (l_positionValue[l_indexServoCmd] - SSV_ANGLE_DEG_TOL))) || (l_position > ((signed short) (l_positionValue[l_indexServoCmd] + SSV_ANGLE_DEG_TOL))));
 
 									l_diffTimeUs 	= clock() - l_beginTimeUs;
 									l_elapsedTimeUs = l_diffTimeUs * 1000 / CLOCKS_PER_SEC;
@@ -136,11 +136,11 @@ int main()
 					{
 						if((l_writeCounter%2) == 0)
 						{
-							l_parameters[0] = (double) 240;
+							l_parameters[0] = (double) 1000; // Max position value
 						}
 						else
 						{
-							l_parameters[0] = (double) 0;
+							l_parameters[0] = (double) 0;	 // Min position value
 						}
 						l_pilotageServo.writeDeviceSerialPort(l_servoId, SSV_SERVO_MESSAGE_MOVE_TIME_WRITE, l_parameters);
 						l_writeCounter++;
